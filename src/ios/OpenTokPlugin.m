@@ -463,12 +463,14 @@
 #pragma mark -
 #pragma mark Helper Methods
 - (void)triggerStreamCreated: (OTStream*) stream withEventType: (NSString*) eventType{
+    NSLog(@"iOS triggerStreamCreated: %@ %@", stream, eventType);
     NSMutableDictionary* data = [[NSMutableDictionary alloc] init];
     NSMutableDictionary* streamData = [self createDataFromStream: stream];
     [data setObject: streamData forKey: @"stream"];
     [self triggerJSEvent: eventType withType: @"streamCreated" withData: data];
 }
 - (void)triggerStreamDestroyed: (OTStream*) stream withEventType: (NSString*) eventType{
+    NSLog(@"iOS triggerStreamDestroyed: %@ %@", stream, eventType);
     [streamDictionary removeObjectForKey: stream.streamId];
     
     NSMutableDictionary* data = [[NSMutableDictionary alloc] init];
