@@ -474,8 +474,9 @@
     [streamDictionary removeObjectForKey: stream.streamId];
     
     NSMutableDictionary* data = [[NSMutableDictionary alloc] init];
-    NSMutableDictionary* streamData = [self createDataFromStream: stream];
-    [data setObject: streamData forKey: @"stream"];
+    NSLog(@"iOS triggerStreamDestroyed not calling createDataFromStream.");
+    //NSMutableDictionary* streamData = [self createDataFromStream: stream];
+    //[data setObject: streamData forKey: @"stream"];
     [self triggerJSEvent: eventType withType: @"streamDestroyed" withData: data];
 }
 - (NSMutableDictionary*)createDataFromConnection:(OTConnection*)connection{
