@@ -442,10 +442,12 @@
 
 #pragma mark Publisher Delegates
 - (void)publisher:(OTPublisherKit *)publisher streamCreated:(OTStream *)stream{
+    NSLog(@"iOS Publisher streamCreated");
     [streamDictionary setObject:stream forKey:stream.streamId];
     [self triggerStreamCreated: stream withEventType: @"publisherEvents"];
 }
 - (void)publisher:(OTPublisherKit*)publisher streamDestroyed:(OTStream *)stream{
+    NSLog(@"iOS Publisher streamDestroyed");
     [self triggerStreamDestroyed: stream withEventType: @"publisherEvents"];
 }
 - (void)publisher:(OTPublisher*)publisher didFailWithError:(NSError*) error {
