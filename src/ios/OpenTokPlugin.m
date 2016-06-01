@@ -42,12 +42,15 @@
 
 // Called by TB.initsession()
 -(void)initSession:(CDVInvokedUrlCommand*)command{
+    NSLog(@"initSession...");
+
     // Get Parameters
     NSString* apiKey = [command.arguments objectAtIndex:0];
     NSString* sessionId = [command.arguments objectAtIndex:1];
     
     // Create Session
     _session = [[OTSession alloc] initWithApiKey: apiKey sessionId:sessionId delegate:self];
+    NSLog(@"initSession done");
     
     // Initialize Dictionary, contains DOM info for every stream
     subscriberDictionary = [[NSMutableDictionary alloc] init];
@@ -61,47 +64,54 @@
 
 // Called by TB.initPublisher()
 - (void)initPublisher:(CDVInvokedUrlCommand *)command{
-    NSLog(@"iOS creating Publisher");
-    BOOL bpubAudio = YES;
-    BOOL bpubVideo = YES;
-    
-    // Get Parameters
-    NSString* name = [command.arguments objectAtIndex:0];
-    int top = [[command.arguments objectAtIndex:1] intValue];
-    int left = [[command.arguments objectAtIndex:2] intValue];
-    int width = [[command.arguments objectAtIndex:3] intValue];
-    int height = [[command.arguments objectAtIndex:4] intValue];
-    int zIndex = [[command.arguments objectAtIndex:5] intValue];
-    int borderRadius = [[command.arguments objectAtIndex:8] intValue];
-    
-    NSString* publishAudio = [command.arguments objectAtIndex:6];
-    if ([publishAudio isEqualToString:@"false"]) {
-        bpubAudio = NO;
-    }
-    NSString* publishVideo = [command.arguments objectAtIndex:7];
-    if ([publishVideo isEqualToString:@"false"]) {
-        bpubVideo = NO;
-    }
-    
-    // Publish and set View
-    _publisher = [[OTPublisher alloc] initWithDelegate:self name:name];
-    [_publisher setPublishAudio:bpubAudio];
-    [_publisher setPublishVideo:bpubVideo];
-    [self.webView.superview addSubview:_publisher.view];
-    [_publisher.view setFrame:CGRectMake(left, top, width, height)];
-    if (zIndex>0) {
-        _publisher.view.layer.zPosition = zIndex;
-    }
-    NSString* cameraPosition = [command.arguments objectAtIndex:8];
-    if ([cameraPosition isEqualToString:@"back"]) {
-        _publisher.cameraPosition = AVCaptureDevicePositionBack;
-    }
-    _publisher.view.layer.cornerRadius = borderRadius;
-    _publisher.view.clipsToBounds = borderRadius ? YES : NO;
-    
-    // Return to Javascript
-    CDVPluginResult* pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK];
-    [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
+    NSLog(@"initPublisher...");
+    [self.commandDelegate runInBackground:^{
+        BOOL bpubAudio = YES;
+        BOOL bpubVideo = YES;
+        
+        // Get Parameters
+        NSString* name = [command.arguments objectAtIndex:0];
+        int top = [[command.arguments objectAtIndex:1] intValue];
+        int left = [[command.arguments objectAtIndex:2] intValue];
+        int width = [[command.arguments objectAtIndex:3] intValue];
+        int height = [[command.arguments objectAtIndex:4] intValue];
+        int zIndex = [[command.arguments objectAtIndex:5] intValue];
+        int borderRadius = [[command.arguments objectAtIndex:8] intValue];
+        
+        NSString* publishAudio = [command.arguments objectAtIndex:6];
+        if ([publishAudio isEqualToString:@"false"]) {
+            bpubAudio = NO;
+        }
+        NSString* publishVideo = [command.arguments objectAtIndex:7];
+        if ([publishVideo isEqualToString:@"false"]) {
+            bpubVideo = NO;
+        }
+        
+        // Publish and set View
+        _publisher = [[OTPublisher alloc] initWithDelegate:self name:name];
+        [_publisher setPublishAudio:bpubAudio];
+        [_publisher setPublishVideo:bpubVideo];
+        
+        [[NSOperationQueue mainQueue] addOperationWithBlock:^ {
+            [self.webView.superview addSubview:_publisher.view];
+            [_publisher.view setFrame:CGRectMake(left, top, width, height)];
+            if (zIndex>0) {
+                _publisher.view.layer.zPosition = zIndex;
+            }
+            NSString* cameraPosition = [command.arguments objectAtIndex:8];
+            if ([cameraPosition isEqualToString:@"back"]) {
+                _publisher.cameraPosition = AVCaptureDevicePositionBack;
+            }
+            _publisher.view.layer.cornerRadius = borderRadius;
+            _publisher.view.clipsToBounds = borderRadius ? YES : NO;
+            
+            NSLog(@"initPublisher done");
+            
+            // Return to Javascript
+            CDVPluginResult* pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK];
+            [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
+        }];
+    }];
 }
 // Helper function to update Views
 - (void)updateView:(CDVInvokedUrlCommand*)command{
@@ -171,70 +181,123 @@
     }
 }
 - (void)destroyPublisher:(CDVInvokedUrlCommand *)command{
-    NSLog(@"iOS Destroying Publisher");
-    // Unpublish publisher
-    [_session unpublish:_publisher error:nil];
+    NSLog(@"destroyPublisher");
     
     // Remove publisher view
     if (_publisher) {
         [_publisher.view removeFromSuperview];
     }
     
-    // Return to Javascript
-    CDVPluginResult* pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK];
-    [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
+    [self.commandDelegate runInBackground:^{
+        OTError *error;
+        NSLog(@"Session.unpublish");
+        [_session unpublish:_publisher error:nil];
+        
+        if (error) {
+            NSLog(@"Session.unpublish failed: %@", [error localizedDescription]);
+        }
+        else {
+            NSLog(@"Session.unpublish done");
+        }
+        
+        CDVPluginResult* pluginResult = error ?
+        [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsString:[error localizedDescription]] :
+        [CDVPluginResult resultWithStatus:CDVCommandStatus_OK];
+        [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
+    }];
 }
 
 
 #pragma mark Session Methods
 - (void)connect:(CDVInvokedUrlCommand *)command{
-    NSLog(@"iOS Connecting to Session");
-    
-    // Get Parameters
-    NSString* tbToken = [command.arguments objectAtIndex:0];
-    [_session connectWithToken:tbToken error:nil];
+    NSLog(@"Session.connect");
+    [self.commandDelegate runInBackground:^{
+        OTError *error;
+
+        // Get Parameters
+        NSString* tbToken = [command.arguments objectAtIndex:0];
+        [_session connectWithToken:tbToken error:&error];
+        
+        if (error) {
+            NSLog(@"Session.connect failed: %@", [error localizedDescription]);
+        }
+        else {
+            NSLog(@"Session.connect done");
+        }
+        
+        CDVPluginResult* pluginResult = error ?
+        [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsString:[error localizedDescription]] :
+        [CDVPluginResult resultWithStatus:CDVCommandStatus_OK];
+        [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
+    }];
 }
 
 // Called by session.disconnect()
 - (void)disconnect:(CDVInvokedUrlCommand*)command{
-    [_session disconnect:nil];
+    NSLog(@"Session.disconnect...");
+    [self.commandDelegate runInBackground:^{
+        OTError *error;
+        [_session disconnect:&error];
+        
+        if (error) {
+            NSLog(@"Session.disconnect failed: %@", [error localizedDescription]);
+        }
+        else {
+            NSLog(@"Session.disconnect done");
+        }
+        
+        CDVPluginResult* pluginResult = error ?
+        [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsString:[error localizedDescription]] :
+        [CDVPluginResult resultWithStatus:CDVCommandStatus_OK];
+        [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
+    }];
 }
 
 // Called by session.publish(top, left)
 - (void)publish:(CDVInvokedUrlCommand*)command{
-    NSLog(@"iOS Publish stream to session");
-    OTError *error;
-    [_session publish:_publisher error:&error];
-    
-    if (error) {
-        NSLog(@"Session.publish failed: %@", [error localizedDescription]);
-    }
-    
-    CDVPluginResult* pluginResult = error ?
+    NSLog(@"Session.publish...");
+    [self.commandDelegate runInBackground:^{
+        OTError *error;
+        [_session publish:_publisher error:&error];
+        
+        if (error) {
+            NSLog(@"Session.publish failed: %@", [error localizedDescription]);
+        }
+        else {
+            NSLog(@"Session.publish done");
+        }
+        
+        CDVPluginResult* pluginResult = error ?
         [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsString:[error localizedDescription]] :
         [CDVPluginResult resultWithStatus:CDVCommandStatus_OK];
-    [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
+        [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
+    }];
 }
 
 // Called by session.unpublish(...)
 - (void)unpublish:(CDVInvokedUrlCommand*)command{
-    NSLog(@"iOS Unpublishing publisher");
-    OTError *error;
-    [_session unpublish:_publisher error:nil];
-    
-    if (error) {
-        NSLog(@"Session.unpublish failed: %@", [error localizedDescription]);
-    }
-    
-    CDVPluginResult* pluginResult = error ?
+    NSLog(@"Session.unpublish...");
+    [self.commandDelegate runInBackground:^{
+        OTError *error;
+        [_session unpublish:_publisher error:nil];
+        
+        if (error) {
+            NSLog(@"Session.unpublish failed: %@", [error localizedDescription]);
+        }
+        else {
+            NSLog(@"Session.unpublish done");
+        }
+        
+        CDVPluginResult* pluginResult = error ?
         [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsString:[error localizedDescription]] :
         [CDVPluginResult resultWithStatus:CDVCommandStatus_OK];
-    [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
+        [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
+    }];
 }
 
 // Called by session.subscribe(streamId, top, left)
 - (void)subscribe:(CDVInvokedUrlCommand*)command{
-    NSLog(@"iOS subscribing to stream");
+    NSLog(@"Session.subscribe...");
     
     // Get Parameters
     NSString* sid = [command.arguments objectAtIndex:0];
@@ -249,7 +312,8 @@
     // Acquire Stream, then create a subscriber object and put it into dictionary
     OTStream* myStream = [streamDictionary objectForKey:sid];
     OTSubscriber* sub = [[OTSubscriber alloc] initWithStream:myStream delegate:self];
-    [_session subscribe:sub error:nil];
+    OTError *error;
+    [_session subscribe:sub error:&error];
     
     if ([[command.arguments objectAtIndex:6] isEqualToString:@"false"]) {
         [sub setSubscribeToAudio: NO];
@@ -267,20 +331,46 @@
     sub.view.clipsToBounds = borderRadius ? YES : NO;
     [self.webView.superview addSubview:sub.view];
     
-    // Return to JS event handler
-    CDVPluginResult* pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK];
+    if (error) {
+        NSLog(@"Session.subscribe failed: %@", [error localizedDescription]);
+    }
+    else {
+        NSLog(@"Session.subscribe done");
+    }
+    
+    CDVPluginResult* pluginResult = error ?
+    [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsString:[error localizedDescription]] :
+    [CDVPluginResult resultWithStatus:CDVCommandStatus_OK];
     [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
 }
 
 // Called by session.unsubscribe(streamId, top, left)
 - (void)unsubscribe:(CDVInvokedUrlCommand*)command{
-    NSLog(@"iOS unSubscribing to stream");
+    NSLog(@"Session.unsubscribe...");
+    
     //Get Parameters
     NSString* sid = [command.arguments objectAtIndex:0];
+    
     OTSubscriber * subscriber = [subscriberDictionary objectForKey:sid];
-    [_session unsubscribe:subscriber error:nil];
     [subscriber.view removeFromSuperview];
     [subscriberDictionary removeObjectForKey:sid];
+    
+    [self.commandDelegate runInBackground:^{
+        OTError *error;
+        [_session unsubscribe:subscriber error:&error];
+    
+        if (error) {
+            NSLog(@"Session.unsubscribe failed: %@", [error localizedDescription]);
+        }
+        else {
+            NSLog(@"Session.unsubscribe done");
+        }
+        
+        CDVPluginResult* pluginResult = error ?
+        [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsString:[error localizedDescription]] :
+        [CDVPluginResult resultWithStatus:CDVCommandStatus_OK];
+        [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
+    }];
 }
 
 // Called by session.unsubscribe(streamId, top, left)
