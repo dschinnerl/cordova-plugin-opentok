@@ -7,6 +7,8 @@
 
 #import "OpentokPlugin.h"
 
+#import "OTDefaultAudioDeviceWithVolumeControl.h"
+
 @implementation OpenTokPlugin{
     OTSession* _session;
     OTPublisher* _publisher;
@@ -47,6 +49,11 @@
     // Get Parameters
     NSString* apiKey = [command.arguments objectAtIndex:0];
     NSString* sessionId = [command.arguments objectAtIndex:1];
+
+    NSLog(@"OTDefaultAudioDeviceWithVolumeControl");
+    OTDefaultAudioDeviceWithVolumeControl* _myAudioDevice = 
+        [[OTDefaultAudioDeviceWithVolumeControl alloc] init];
+    [OTAudioDeviceManager setAudioDevice:_myAudioDevice];;
     
     // Create Session
     _session = [[OTSession alloc] initWithApiKey: apiKey sessionId:sessionId delegate:self];
