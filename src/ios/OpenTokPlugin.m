@@ -333,6 +333,8 @@
     NSLog(@"triggerJSEvent audioLevelUpdated (OTSubscriberKit)... %f %f", audioLevel, level);
     NSMutableDictionary* eventData = [[NSMutableDictionary alloc] init];
     [eventData setObject:[NSNumber numberWithFloat: level] forKey:@"audioLevel"];
+    NSString* streamId = subscriber.stream.streamId;
+    [eventData setObject:streamId forKey:@"streamId"];
     [self triggerJSEvent: @"sessionEvents" withType: @"audioLevelUpdated" withData: eventData];
 }
 
