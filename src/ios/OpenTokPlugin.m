@@ -305,7 +305,7 @@
 
 - (void)publisher:(OTPublisherKit *)publisher audioLevelUpdated:(float)audioLevel
 {
-    NSLog(@"audioLevelUpdated (OTPublisherKit)...");
+    // NSLog(@"audioLevelUpdated (OTPublisherKit)...");
     float db = 20 * log10(audioLevel);
     float floor = -40;
     float level = 0;
@@ -314,14 +314,14 @@
         level /= abs(floor);
     }
 
-    NSLog(@"triggerJSEvent audioLevelUpdated (OTPublisherKit)... %f %f", audioLevel, level);
+    // NSLog(@"triggerJSEvent audioLevelUpdated (OTPublisherKit)... %f %f", audioLevel, level);
     NSMutableDictionary* eventData = [[NSMutableDictionary alloc] init];
     [eventData setObject:[NSNumber numberWithFloat: level] forKey:@"audioLevel"];
     [self triggerJSEvent: @"publisherEvents" withType: @"audioLevelUpdated" withData: eventData];
 }
 
 - (void)subscriber:(OTSubscriberKit *)subscriber audioLevelUpdated:(float)audioLevel{
-    NSLog(@"audioLevelUpdated (OTSubscriberKit)...");
+    // NSLog(@"audioLevelUpdated (OTSubscriberKit)...");
     float db = 20 * log10(audioLevel);
     float floor = -40;
     float level = 0;
@@ -330,7 +330,7 @@
         level /= abs(floor);
     }
 
-    NSLog(@"triggerJSEvent audioLevelUpdated (OTSubscriberKit)... %f %f", audioLevel, level);
+    // NSLog(@"triggerJSEvent audioLevelUpdated (OTSubscriberKit)... %f %f", audioLevel, level);
     NSMutableDictionary* eventData = [[NSMutableDictionary alloc] init];
     [eventData setObject:[NSNumber numberWithFloat: level] forKey:@"audioLevel"];
     NSString* streamId = subscriber.stream.streamId;
