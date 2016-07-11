@@ -96,6 +96,7 @@
         
         // Publish and set View
         _publisher = [[OTPublisher alloc] initWithDelegate:self name:name];
+        _publisher.audioLevelDelegate = self;
         [_publisher setPublishAudio:bpubAudio];
         [_publisher setPublishVideo:bpubVideo];
         
@@ -302,6 +303,39 @@
     }];
 }
 
+- (void)publisher:(OTPublisherKit *)publisher audioLevelUpdated:(float)audioLevel
+{
+    NSLog(@"audioLevelUpdated (OTPublisherKit)...");
+    float db = 20 * log10(audioLevel);
+    float floor = -40;
+    float level = 0;
+    if (db > floor) {
+        level = db + abs(floor);
+        level /= abs(floor);
+    }
+
+    NSLog(@"triggerJSEvent audioLevelUpdated (OTPublisherKit)... %f %f", audioLevel, level);
+    NSMutableDictionary* eventData = [[NSMutableDictionary alloc] init];
+    [eventData setObject:[NSNumber numberWithFloat: level] forKey:@"audioLevel"];
+    [self triggerJSEvent: @"publisherEvents" withType: @"audioLevelUpdated" withData: eventData];
+}
+
+- (void)subscriber:(OTSubscriberKit *)subscriber audioLevelUpdated:(float)audioLevel{
+    NSLog(@"audioLevelUpdated (OTSubscriberKit)...");
+    float db = 20 * log10(audioLevel);
+    float floor = -40;
+    float level = 0;
+    if (db > floor) {
+        level = db + abs(floor);
+        level /= abs(floor);
+    }
+
+    NSLog(@"triggerJSEvent audioLevelUpdated (OTSubscriberKit)... %f %f", audioLevel, level);
+    NSMutableDictionary* eventData = [[NSMutableDictionary alloc] init];
+    [eventData setObject:[NSNumber numberWithFloat: level] forKey:@"audioLevel"];
+    [self triggerJSEvent: @"sessionEvents" withType: @"audioLevelUpdated" withData: eventData];
+}
+
 // Called by session.subscribe(streamId, top, left)
 - (void)subscribe:(CDVInvokedUrlCommand*)command{
     NSLog(@"Session.subscribe...");
@@ -319,6 +353,10 @@
     // Acquire Stream, then create a subscriber object and put it into dictionary
     OTStream* myStream = [streamDictionary objectForKey:sid];
     OTSubscriber* sub = [[OTSubscriber alloc] initWithStream:myStream delegate:self];
+
+    NSLog(@"audioLevelDelegate");
+    sub.audioLevelDelegate = self;
+
     OTError *error;
     [_session subscribe:sub error:&error];
     
@@ -359,6 +397,7 @@
     NSString* sid = [command.arguments objectAtIndex:0];
     
     OTSubscriber * subscriber = [subscriberDictionary objectForKey:sid];
+    subscriber.audioLevelDelegate = nil;
     [subscriber.view removeFromSuperview];
     [subscriberDictionary removeObjectForKey:sid];
     
@@ -483,6 +522,7 @@
     NSLog(@"iOS Drop Stream");
     
     OTSubscriber * subscriber = [subscriberDictionary objectForKey:stream.streamId];
+    subscriber.audioLevelDelegate = nil;
     if (subscriber) {
         NSLog(@"subscriber found, unsubscribing");
         [_session unsubscribe:subscriber error:nil];
@@ -516,6 +556,7 @@
     }
     [subscriberDictionary removeAllObjects];
     if( _publisher ){
+        _publisher.audioLevelDelegate = nil;
         [_publisher.view removeFromSuperview];
     }
     
@@ -606,6 +647,7 @@
     [pluginResult setKeepCallbackAsBool:YES];
     
     NSString* callbackId = [callbackList objectForKey:event];
+    NSLog(@"triggerJSEvent %@ %@ %@", callbackId, type, data);
     [self.commandDelegate sendPluginResult:pluginResult callbackId:callbackId];
 }
 
