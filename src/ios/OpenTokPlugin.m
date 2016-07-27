@@ -95,7 +95,8 @@
         }
         
         // Publish and set View
-        _publisher = [[OTPublisher alloc] initWithDelegate:self name:name];
+        NSLog(@"Audio: %@, Video: %@", bpubAudio ? @"YES" : @"NO", bpubVideo ? @"YES" : @"NO");
+        _publisher = [[OTPublisher alloc] initWithDelegate:self name:name audioTrack:bpubVideo videoTrack:bpubVideo];
         _publisher.audioLevelDelegate = self;
         [_publisher setPublishAudio:bpubAudio];
         [_publisher setPublishVideo:bpubVideo];
