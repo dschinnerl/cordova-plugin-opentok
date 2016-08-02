@@ -592,7 +592,7 @@
     [self triggerStreamDestroyed: stream withEventType: @"publisherEvents"];
 }
 - (void)publisher:(OTPublisher*)publisher didFailWithError:(NSError*) error {
-    NSLog(@"iOS Publisher didFailWithError");
+    NSLog(@"iOS Publisher didFailWithError, %@", error);
     NSMutableDictionary* err = [[NSMutableDictionary alloc] init];
     [err setObject:error.localizedDescription forKey:@"message"];
     
